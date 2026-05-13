@@ -4,9 +4,11 @@ from rooms import serializers, paginators
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+
 class RoomTypeViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = RoomType.objects.all()
     serializer_class = serializers.RoomTypeSerializer
+
 
 class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Room.objects.filter(active=True)
@@ -14,6 +16,7 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
     pagination_class = paginators.ItemPaginator
 
 
+    # Cách 1 để lọc
     # Tìm liếm theo q và roomtpye_id
     def get_queryset(self):
         query = self.request
@@ -26,3 +29,8 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
         if roomtype_id:
             query = query.filter(roomtype_id=roomtype_id)
         return query
+
+    # Cách 2 để lọc
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ['room_number']
+    ordering_fields = ['roomtype_id']
