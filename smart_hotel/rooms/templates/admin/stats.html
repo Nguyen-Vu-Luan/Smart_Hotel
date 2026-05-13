@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Room Stats</h1>
+
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Count</th>
+    </tr>
+
+    {% for r in stats %}
+    <tr>
+        <td>{{ r.name }}</td>
+        <td>{{ r.count }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div>
+  <canvas id="myChart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+
+</script>
+
+{% endblock %}
