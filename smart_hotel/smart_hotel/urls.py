@@ -47,7 +47,6 @@ urlpatterns = [
     re_path(r'^redoc/$',
             schema_view.with_ui('redoc', cache_timeout=0),
             name='schema-redoc'),
-urlpatterns = [
-    path('', include('rooms.urls')),
-    path('admin/', admin_site.urls),
+
+    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]

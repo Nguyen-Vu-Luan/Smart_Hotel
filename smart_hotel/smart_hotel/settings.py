@@ -41,10 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rooms.apps.RoomsConfig',
     'rest_framework',
+    'django_filters',
     # 'ckeditor',
     # 'ckeditor_uploader',
     'drf_yasg',
     'cloudinary',
+    'oauth2_provider',
 ]
 
 MIDDLEWARE = [
@@ -138,3 +140,12 @@ cloudinary.config(
     api_key="755285325749422",
     api_secret="-S4Uwmv5_B2ajn9_SrDhdXWh0_c",
 )
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
+}
+
+# CLIENT_ID = Z2VFBztgCuHXJmaTvDae0P5Vio0hfpMTMKkugtSA
+# CLIENT_SECRET = bHaIH5deWIjYTnGJbOIuVnlOqy50PjjVHQhvLNF8i8M0Y68Mq4kBTgakv4FMQVME2uVBE6WPr2y0VhjFQ5JRzTlbJi5O57fs3i134pWxKYAW7a3RUWWNMUXOQ8W3Rvf3
