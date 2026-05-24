@@ -112,6 +112,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = BookingDetail
         fields = ['id', 'room', 'price_at_booking']
+        read_only_fields = ['price_at_booking']
 
 # API của Booking
 class BookingSerializer(serializers.ModelSerializer):

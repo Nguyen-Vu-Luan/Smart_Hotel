@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hóa đơn Smart Hotel</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+            HÓA ĐƠN THANH TOÁN ĐIỆN TỬ
+        </h2>
+        <p>Xin chào <strong>{{ customer_name }}</strong>,</p>
+        <p>Smart Hotel xin chân thành cảm ơn quý khách. Đơn đặt phòng của quý khách đã được <strong>Thanh toán thành công</strong>. Dưới đây là thông tin chi tiết hóa đơn:</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr style="background-color: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Mã đơn hàng:</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">#{{ booking.id }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Ngày Check-in:</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">{{ booking.check_in_date }}</td>
+            </tr>
+            <tr style="background-color: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Ngày Check-out:</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">{{ booking.check_out_date }}</td>
+            </tr>
+        </table>
+
+        <h4 style="color: #2c3e50; margin-top: 20px;">Danh sách phòng đặt:</h4>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #3498db; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Số phòng</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Loại phòng</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Giá tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detail in details %}
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Phòng {{ detail.room.room_number }}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{{ detail.room.room_type.type_name }}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">{{ detail.price_at_booking }} VND</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div style="margin-top: 25px; padding-top: 15px; border-top: 2px solid #2c3e50; text-align: right;">
+            <h3 style="margin: 0; color: #e74c3c;">TỔNG TIỀN: {{ booking.total_amount }} VND</h3>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ddd; margin: 30px 0;">
+        <p style="font-size: 12px; color: #7f8c8d; text-align: center;">
+            Đây là email tự động từ hệ thống Smart Hotel. Vui lòng không trả lời trực tiếp email này.<br>
+            Hotline hỗ trợ: 1900 xxxx
+        </p>
+    </div>
+</body>
+</html>
