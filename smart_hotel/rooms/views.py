@@ -52,6 +52,8 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
     pagination_class = paginators.ItemPaginator
 
     # Cách 1 để lọc bằng get_queryset
+
+    # Cách 1 để lọc
     # Tìm liếm theo q và roomtpye_id
     # def get_queryset(self):
     #     query = self.request
@@ -133,3 +135,12 @@ class BookingViewSet(viewsets.ModelViewSet):
             booking.save()
             return Response({"message": "Hủy phòng thành công!"})
         return Response({"error": "Không thể hủy phòng ở trạng thái này."}, status=400)
+        roomtype_id = self.request.query_params.get('roomtype_id')
+        if roomtype_id:
+            query = query.filter(roomtype_id=roomtype_id)
+        return query
+
+    # Cách 2 để lọc
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ['room_number']
+    ordering_fields = ['roomtype_id']
