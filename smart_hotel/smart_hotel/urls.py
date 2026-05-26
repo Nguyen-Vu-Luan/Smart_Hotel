@@ -33,7 +33,6 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
-
 urlpatterns = [
     path('', include('rooms.urls')),
     path('admin/', admin_site.urls),

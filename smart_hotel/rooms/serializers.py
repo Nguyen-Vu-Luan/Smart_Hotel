@@ -14,7 +14,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = SimpleUserSerializer.Meta.model
-        fields = SimpleUserSerializer.Meta.fields + ['id', 'username', 'password', 'avatar']
+        fields = SimpleUserSerializer.Meta.fields + ['username', 'password']
         extra_kwargs = {
             'password': {
                 'write_only': True
@@ -106,13 +106,27 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'booking', 'rating', 'comment', 'created_date']
 
+class PublicReviewSerializer(serializers.ModelSerializer):
+    # Lấy thông tin khách hàng từ Booking -> Customer
+    customer_name = serializers.CharField(source='booking.customer.full_name', read_only=True)
+    customer_avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Review
+        # Chỉ trả về các trường cần thiết cho cộng đồng xem, ẩn ID của booking đi
+        fields = ['id', 'rating', 'comment', 'created_date', 'customer_name', 'customer_avatar']
+
+    # Xử lý URL ảnh Avatar qua Cloudinary
+    def get_customer_avatar(self, obj):
+        if obj.booking.customer.avatar:
+            return obj.booking.customer.avatar.url
+        return None
 
 # API của BookingDetail
 class BookingDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = BookingDetail
         fields = ['id', 'room', 'price_at_booking']
-        read_only_fields = ['price_at_booking']
 
 # API của Booking
 class BookingSerializer(serializers.ModelSerializer):

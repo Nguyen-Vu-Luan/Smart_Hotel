@@ -4,7 +4,7 @@ from rooms import views
 
 r = DefaultRouter()
 r.register('roomtypes', views.RoomTypeViewSet, 'roomtype')
-r.register('rooms', views.RoomViewSet, 'room')
+r.register('rooms', views.RoomTypeViewSet, 'room')
 r.register('users', views.UserViewSet, 'user')
 r.register('services', views.ServiceViewSet, basename='service')
 r.register('bookings', views.BookingViewSet, basename='booking')
