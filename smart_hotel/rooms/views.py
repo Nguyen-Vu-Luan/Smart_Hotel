@@ -4,7 +4,10 @@ from .models import RoomType, Room, User, Service, Booking, BookingService, Paym
 from rooms import serializers, paginators
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rooms.vnpay_helpers import VNPayHelper
+from .utils import send_invoice_email
 from .perms import IsReviewOwner
+
 
 
 # Viewset của User
@@ -76,6 +79,24 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
     # Sắp xếp (?ordering=...)
     ordering_fields = ['room_type_id']
 
+    @action(methods=['post'], detail=True, url_path='finish-cleaning')
+    def finish_cleaning(self, request, pk=None):
+        if request.user.role not in ['HOUSEKEEPING', 'MANAGER']:
+            return Response({"error": "Bạn không thuộc bộ phận dọn phòng để thực hiện thao tác này!"},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        room = self.get_object()
+
+        if room.status != 'CLEANING':
+            return Response({"error": "Phòng này hiện tại không ở trạng thái cần dọn dẹp!"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        room.status = 'AVAILABLE'
+        room.save()
+
+        return Response({"message": f"Phòng {room.room_number} đã được dọn sạch sẽ và sẵn sàng đón khách!"},
+                        status=status.HTTP_200_OK)
+
 
 
 # Viewset của Service
@@ -100,45 +121,6 @@ class BookingServiceViewSet(viewsets.ModelViewSet):
 class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Payment.objects.filter(booking__customer=self.request.user)
-
-
-# Viewset của Review (Yêu cầu đăng nhập)
-class ReviewViewSet(viewsets.ModelViewSet):
-    serializer_class = serializers.ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated, IsReviewOwner]
-
-    def get_queryset(self):
-        return Review.objects.filter(booking__customer=self.request.user)
-
-
-# Viewset của Booking (Yêu cầu phải đăng nhập)
-class BookingViewSet(viewsets.ModelViewSet):
-    serializer_class = serializers.BookingSerializer
-    permission_classes = [permissions.IsAuthenticated] # Yêu cầu OAuth2 Token
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ['status']
-    ordering_fields = ['-created_date']
-
-    def get_queryset(self):
-        # LOGIC QUAN TRỌNG: Khách hàng nào chỉ thấy booking của người đó
-        return Booking.objects.filter(customer=self.request.user)
-
-    # Thêm action tùy chỉnh để khách hàng hủy phòng
-    @action(methods=['post'], detail=True, url_path='cancel')
-    def cancel_booking(self, request, pk=None):
-        booking = self.get_object()
-        if booking.status == 'PENDING':
-            booking.status = 'CANCELLED'
-            booking.save()
-            return Response({"message": "Hủy phòng thành công!"})
-        return Response({"error": "Không thể hủy phòng ở trạng thái này."}, status=400)
-        roomtype_id = self.request.query_params.get('roomtype_id')
-        if roomtype_id:
-            query = query.filter(roomtype_id=roomtype_id)
-        return query
 
     def get_queryset(self):
         return Payment.objects.filter(booking__customer=self.request.user)
@@ -238,10 +220,14 @@ class BookingViewSet(viewsets.ModelViewSet):
 # Viewset của Review (Yêu cầu đăng nhập)
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsReviewOwner]
 
     def get_queryset(self):
         return Review.objects.filter(booking__customer=self.request.user)
+
+
+
+
 
 
 # Viewset của Booking (Yêu cầu phải đăng nhập)
@@ -270,6 +256,7 @@ class BookingViewSet(viewsets.ModelViewSet):
             booking.save()
             return Response({"message": "Hủy phòng thành công!"}, status=status.HTTP_200_OK)
         return Response({"error": "Không thể hủy phòng ở trạng thái này."}, status=status.HTTP_400_BAD_REQUEST)
+
 
     @action(methods=['post'], detail=True, url_path='check-in')
     def check_in(self, request, pk=None):

@@ -149,3 +149,26 @@ REST_FRAMEWORK = {
 
 # CLIENT_ID = Z2VFBztgCuHXJmaTvDae0P5Vio0hfpMTMKkugtSA
 # CLIENT_SECRET = bHaIH5deWIjYTnGJbOIuVnlOqy50PjjVHQhvLNF8i8M0Y68Mq4kBTgakv4FMQVME2uVBE6WPr2y0VhjFQ5JRzTlbJi5O57fs3i134pWxKYAW7a3RUWWNMUXOQ8W3Rvf3
+
+
+CLIENT_ID = 'q0QxIoaHENINPcS4iPs7k4fts0c8v0vN0axY5Qmt'
+CLIENT_SECRET = 'Tg4MXjuYDjBSiFFNnnGBK9fIhVehKGzIA4Dy6H7BLuppoPMtcJkAp2BS78PH0tFbLvdYiwZcI8ax9hd729lY86j40injERxi0b3j22rO3SglPzMEEbIpF44mlWSWJdVs'
+
+
+VNPAY_TMN_CODE = "WCTEJ7O4"
+VNPAY_HASH_SECRET = "35NQH0FH8QA5OJNVI8WGAJ8P60RXSEDA"
+VNPAY_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+
+VNPAY_RETURN_URL = "http://127.0.0.1:8000/payments/vnpay-callback/"
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+
+EMAIL_HOST_USER = 'nguyenvinhloi52@gmail.com'
+EMAIL_HOST_PASSWORD = 'drnf qabk zafq gfhp'
+DEFAULT_FROM_EMAIL = f"Smart Hotel System <{EMAIL_HOST_USER}>"
+
