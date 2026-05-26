@@ -87,7 +87,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'smarthotel',
         'USER': 'root',
-        'PASSWORD': 'Ln@080404',
+        'PASSWORD': 'abc123',
         'HOST': ''  # mặc định localhost
     }
 }
