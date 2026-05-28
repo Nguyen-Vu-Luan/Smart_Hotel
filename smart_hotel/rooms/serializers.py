@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from rooms.models import Room, RoomType, Service, BookingDetail, BookingService, Payment, Booking, Review
+from rooms.models import Room, RoomType, Service, BookingDetail, BookingService, Payment, Booking, Review, User
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
@@ -29,6 +29,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create(**validated_data)
+        user.set_password(validated_data['password'])
+        user.save()
         return user
 
 

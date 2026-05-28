@@ -13,6 +13,7 @@ from datetime import datetime
 
 
 
+
 # Viewset của User
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -57,29 +58,9 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
     serializer_class = serializers.RoomSerializer
     pagination_class = paginators.ItemPaginator
 
-    # Cách 1 để lọc bằng get_queryset
-
-    # Cách 1 để lọc
-    # Tìm liếm theo q và roomtpye_id
-    # def get_queryset(self):
-    #     query = self.request
-    #
-    #     q = self.request.query_params.get('q')
-    #     if q:
-    #         query = query.filter(subject__icontains=q)
-    #
-    #     roomtype_id = self.request.query_params.get('room_type_id')
-    #     if roomtype_id:
-    #         query = query.filter(roomtype_id=roomtype_id)
-    #     return query
-
-    # Cách 2 để lọc dùng BUILD-IN FILTERS
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    # Lọc chính xác (Exact match)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filterset_fields = ['room_type', 'status']
-    # tìm kiếm theo từ khóa (?search=...)
     search_fields = ['room_number']
-    # Sắp xếp (?ordering=...)
     ordering_fields = ['room_type_id']
 
     @action(methods=['post'], detail=True, url_path='finish-cleaning')
@@ -99,6 +80,7 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return Response({"message": f"Phòng {room.room_number} đã được dọn sạch sẽ và sẵn sàng đón khách!"},
                         status=status.HTTP_200_OK)
+
 
 
 
@@ -155,6 +137,7 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 
 
+
 # Viewset của Service
 class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Service.objects.filter(active=True)
@@ -177,7 +160,9 @@ class BookingServiceViewSet(viewsets.ModelViewSet):
 class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     # permission_classes = [permissions.AllowAny]
+
 
     def get_queryset(self):
         return Payment.objects.filter(booking__customer=self.request.user)

@@ -1,82 +1,41 @@
-// import { SafeAreaView, StyleSheet } from "react-native";
-// import Header from "./components/Header";
-// import Home from "./screens/Home/Home";
-// import Checkout from './screens/Checkout/Checkout';
-// import Styles from "./styles/Styles";
-// import { NavigationContainer } from "@react-navigation/native";
-// import { createStackNavigator } from '@react-navigation/stack';
 
-// const Stack = createStackNavigator();
+import React, { useReducer } from "react";
+import { SafeAreaView, StyleSheet } from "react-native";
+import Styles from "./styles/Styles";
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// const App = () => {
-//     return (
-//         <SafeAreaView style={Styles.container}>
-//             <Header />
-//             {/* <Home /> */}
-
-     
-//             <NavigationContainer>
-//                 <Stack.Navigator 
-//                     initialRouteName="Home"
-//                     screenOptions={{
-//                         headerShown: false 
-//                     }}
-//                 >
-//                     {/* Đăng ký màn hình Trang chủ */}
-//                     <Stack.Screen name="Home" component={Home} />
-                    
-//                     {/* Đăng ký màn hình Thanh toán */}
-//                     <Stack.Screen name="Checkout" component={Checkout} />
-//                 </Stack.Navigator>
-//             </NavigationContainer>
-//         </SafeAreaView>
-//     );
-// }
-
-// export default App;
-
-
-
-
-import React, { createContext, useReducer } from 'react'; 
-import { SafeAreaView } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from '@react-navigation/stack';
-
+import { MyUserContext, MyDispatchContext, myUserReducer } from "./reducers/MyUserReducer";
 import Header from "./components/Header";
 import Home from "./screens/Home/Home";
-import Checkout from './screens/Checkout/Checkout';
-import AdminDashboard from './screens/Admin/AdminDashboard'; 
-import Styles from "./styles/Styles";
-import MyUserReducer from './reducers/MyUserReducer'; 
+import RoomDetail from "./screens/RoomDetail/RoomDetail";
+import Login from "./screens/User/Login";
+import Register from "./screens/User/Register";
+import Booking from "./screens/Booking/Booking";
+import { PaperProvider } from "react-native-paper";
 
-
-export const MyUserContext = createContext();
-
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
 const App = () => {
-    // 5. Khởi tạo State user
-    const [user, dispatch] = useReducer(MyUserReducer, null);
+    const [user, dispatch] = useReducer(myUserReducer, null);
 
     return (
-        <MyUserContext.Provider value={[user, dispatch]}>
-            <SafeAreaView style={Styles.container}>
-                <Header />
-                <NavigationContainer>
-                    <Stack.Navigator 
-                        initialRouteName="Home"
-                        screenOptions={{ headerShown: false } }
-                    >
-                        <Stack.Screen name="Home" component={Home} />
-                        <Stack.Screen name="Checkout" component={Checkout} />
-                      
-                        <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
-                    </Stack.Navigator>
-                </NavigationContainer>
-                
-            </SafeAreaView>
-        </MyUserContext.Provider>
+        <PaperProvider>
+            <MyUserContext.Provider value={user}>
+                <MyDispatchContext.Provider value={dispatch}>
+                    <NavigationContainer>
+                        <Stack.Navigator initialRouteName="Home">
+                            <Stack.Screen name="Home" component={Home} options={{ title: 'Trang chủ' }} />
+                            <Stack.Screen name="RoomDetail" component={RoomDetail} options={{ title: 'Chi tiết phòng' }} />
+                            <Stack.Screen name="Login" component={Login} options={{ title: 'Đăng nhập' }} />
+                            <Stack.Screen name="Register" component={Register} options={{ title: 'Đăng ký' }} />
+                            <Stack.Screen name="Booking" component={Booking} options={{ title: 'Đặt phòng' }} />
+                        </Stack.Navigator>
+                    </NavigationContainer>
+                </MyDispatchContext.Provider>
+            </MyUserContext.Provider>
+        </PaperProvider>
+
     );
 }
 

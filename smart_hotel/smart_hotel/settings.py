@@ -87,7 +87,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'smarthotel',
         'USER': 'root',
-        'PASSWORD': 'abc123',
+        'PASSWORD': 'Ln@080404',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -147,6 +147,7 @@ REST_FRAMEWORK = {
     )
 }
 
+# Luân
 # CLIENT_ID = Z2VFBztgCuHXJmaTvDae0P5Vio0hfpMTMKkugtSA
 # CLIENT_SECRET = bHaIH5deWIjYTnGJbOIuVnlOqy50PjjVHQhvLNF8i8M0Y68Mq4kBTgakv4FMQVME2uVBE6WPr2y0VhjFQ5JRzTlbJi5O57fs3i134pWxKYAW7a3RUWWNMUXOQ8W3Rvf3
 

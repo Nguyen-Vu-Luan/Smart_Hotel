@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module version="4">
   <component name="NewModuleRootManager">
+<<<<<<< HEAD
     <orderEntry type="inheritedJdk" />
+=======
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/smart_hotel" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.14 (Smart_Hotel)" jdkType="Python SDK" />
+>>>>>>> 3ab3b3fcae8db40b5a12df7722edf6df058752ec
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
