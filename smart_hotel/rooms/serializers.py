@@ -146,6 +146,22 @@ class BookingSerializer(serializers.ModelSerializer):
         # Gán customer từ context của request
         validated_data['customer'] = self.context['request'].user
 
+    # @transaction.atomic
+    # def create(self, validated_data):
+    #     details_data = validated_data.pop('details')
+    #
+    #     # 🚀 LẤY USER TỪ REQUEST
+    #     user = self.context['request'].user
+    #
+    #     # Mẹo: Nếu Front-end chưa đăng nhập (user là AnonymousUser), tự bốc đại User đầu tiên trong DB để test luồng
+    #     if user.is_anonymous:
+    #         user = User.objects.first()
+    #         if not user:
+    #             raise serializers.ValidationError({
+    #                                                   "error": "Database chưa có User nào để gán đơn hàng test. Hãy tạo 1 user trong Django Admin trước!"})
+    #
+    #     validated_data['customer'] = user
+
         # 1. Tạo Booking
         booking = Booking.objects.create(**validated_data)
 
