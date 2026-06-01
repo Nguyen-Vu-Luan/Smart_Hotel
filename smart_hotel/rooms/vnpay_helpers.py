@@ -8,6 +8,8 @@ from datetime import datetime
 class VNPayHelper:
     @staticmethod
     def get_payment_url(booking_id, amount, order_desc, ip_address):
+        timestamp = datetime.now().strftime('%H%M%S')
+        txn_ref = f"{booking_id}_{timestamp}"
         vnp_params = {
             'vnp_Version': '2.1.0',
             'vnp_Command': 'pay',

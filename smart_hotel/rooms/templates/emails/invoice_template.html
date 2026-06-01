@@ -40,12 +40,32 @@
                 {% for detail in details %}
                 <tr>
                     <td style="padding: 10px; border: 1px solid #ddd;">Phòng {{ detail.room.room_number }}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">{{ detail.room.room_type.type_name }}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{{ detail.room.room_type.name }}</td>
                     <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">{{ detail.price_at_booking }} VND</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        {% if booking_services %}
+        <h4 style="color: #2c3e50; margin-top: 20px;">Dịch vụ đi kèm:</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr style="background-color: #27ae60; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tên dịch vụ</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bs in booking_services %}
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">{{ bs.service.name }}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">{{ bs.total_price }} VND</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
 
         <div style="margin-top: 25px; padding-top: 15px; border-top: 2px solid #2c3e50; text-align: right;">
             <h3 style="margin: 0; color: #e74c3c;">TỔNG TIỀN: {{ booking.total_amount }} VND</h3>

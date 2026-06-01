@@ -10,11 +10,9 @@ from .perms import IsReviewOwner
 from django.db.models import Sum, Count, Avg
 from django.db.models.functions import ExtractMonth
 from datetime import datetime
+from django.db import transaction
 
 
-
-
-# Viewset của User
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
@@ -31,28 +29,22 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return Response(serializers.UserSerializer(u).data, status=status.HTTP_200_OK)
 
 
-# Viewset của Roomtype
+
 class RoomTypeViewSet(viewsets.ViewSet, generics.ListAPIView):
-    # Chỉ lấy các loại phòng đang hoạt động
     queryset = RoomType.objects.filter(active=True)
     serializer_class = serializers.RoomTypeSerializer
 
     @action(methods=['get'], detail=True, url_path='reviews', permission_classes=[permissions.AllowAny])
     def get_reviews(self, request, pk=None):
-        # 1. Lấy loại phòng hiện tại dựa trên ID (pk) truyền vào URL
         room_type = self.get_object()
 
-        # 2. Truy vấn chéo (JOIN): Tìm các Review thuộc về Booking có chứa Room thuộc RoomType này
-        # Logic: Review -> Booking -> BookingDetail -> Room -> RoomType
         reviews = Review.objects.filter(
             booking__details__room__room_type=room_type
-        ).distinct()  # distinct() để tránh trùng lặp dữ liệu nếu 1 booking đặt 2 phòng cùng loại
+        ).distinct()
 
-        # 3. Serialize dữ liệu và trả về
         serializer = serializers.PublicReviewSerializer(reviews, many=True)
         return Response(serializer.data)
 
-# Viewset của Room
 class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Room.objects.filter(active=True)
     serializer_class = serializers.RoomSerializer
@@ -136,32 +128,24 @@ class RoomViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-
-# Viewset của Service
 class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Service.objects.filter(active=True)
     serializer_class = serializers.ServiceSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
-
-# Viewset của Service (Yêu cầu đăng nhập)
 class BookingServiceViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.BookingServiceSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Chỉ xem các dịch vụ thuộc các booking của user này
         return BookingService.objects.filter(booking__customer=self.request.user)
 
 
-# Viewset của Payment (Yêu cầu đăng nhập)
 class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    # permission_classes = [permissions.AllowAny]
 
 
     def get_queryset(self):
@@ -170,31 +154,29 @@ class PaymentViewSet(viewsets.ModelViewSet):
     @action(methods=['post'], detail=False, url_path='create-vnpay')
     def create_vnpay_payment(self, request):
         booking_id = request.data.get('booking_id')
+
+
         try:
             booking = Booking.objects.get(id=booking_id, customer=request.user)
         except Booking.DoesNotExist:
-            return Response({"error": "Đơn đặt phòng không tồn tại hoặc không thuộc quyền sở hữu của bạn!"},
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Đơn đặt phòng không tồn tại!"}, status=status.HTTP_404_NOT_FOUND)
 
-        # # 🚀 XỬ LÝ LẤY USER ANONYMOUS ĐỂ TEST KHÔNG CẦN TOKEN ĐĂNG NHẬP
-        # user = request.user
-        # if user.is_anonymous:
-        #     user = User.objects.first()  # Bốc đại user đầu tiên trong DB giống y như bên Serializer
-        #
-        # try:
-        #     # Thay request.user bằng biến user đã được xử lý ở trên
-        #     booking = Booking.objects.get(id=booking_id, customer=user)
-        # except Booking.DoesNotExist:
-        #     return Response({"error": "Đơn đặt phòng không tồn tại hoặc không thuộc quyền sở hữu của bạn!"},
-        #                     status=status.HTTP_404_NOT_FOUND)
+        details = booking.details.all()
+        room_price = details[0].price_at_booking if details.exists() else 0
+        service_price = booking.services.aggregate(total=Sum('total_price'))['total'] or 0
+
+        final_amount = room_price + service_price
+
+        booking.total_amount = final_amount
+        booking.save()
 
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         ip_address = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
 
-        payment, created = Payment.objects.get_or_create(
+        payment, created = Payment.objects.update_or_create(
             booking=booking,
             defaults={
-                'amount': booking.total_amount,
+                'amount': final_amount,
                 'payment_method': 'E_WALLET',
                 'payment_status': 'PENDING'
             }
@@ -202,8 +184,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
         payment_url = VNPayHelper.get_payment_url(
             booking_id=booking.id,
-            amount=booking.total_amount,
-            order_desc=f"Thanh toan hoa don dat phong #{booking.id} tai Smart Hotel",
+            amount=int(final_amount),
+            order_desc=f"Thanh toan don #{booking.id}",
             ip_address=ip_address
         )
 
@@ -214,7 +196,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
         query_params = request.GET.dict()
 
         if VNPayHelper.validate_response(query_params):
-            booking_id = query_params.get('vnp_TxnRef')
+            txn_ref = query_params.get('vnp_TxnRef')
+            booking_id = txn_ref.split('_')[0]
             response_code = query_params.get('vnp_ResponseCode')
 
             try:
@@ -257,7 +240,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
             booking=booking,
             defaults={
                 'amount': booking.total_amount,
-                'payment_method': 'CASH',  # Trực tiếp tại quầy
+                'payment_method': 'CASH',
                 'payment_status': 'SUCCESS'
             }
         )
@@ -271,7 +254,6 @@ class PaymentViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_200_OK)
 
 
-# Viewset của Review (Yêu cầu đăng nhập)
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ReviewSerializer
     permission_classes = [permissions.IsAuthenticated, IsReviewOwner]
@@ -281,28 +263,124 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 
-
-
-
-# Viewset của Booking (Yêu cầu phải đăng nhập)
 class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.BookingSerializer
-    # permission_classes = [permissions.AllowAny]
-    permission_classes = [permissions.IsAuthenticated]# Yêu cầu OAuth2 Token
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status']
     ordering_fields = ['created_date']
     search_fields = ['customer__username']
 
+
+    def perform_create(self, serializer):
+        check_in_str = self.request.data.get('check_in_date')
+        check_out_str = self.request.data.get('check_out_date')
+
+        check_in = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+        check_out = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+
+        details_data = self.request.data.get('details', [])
+        services_data = self.request.data.get('services', [])
+
+        if not details_data:
+            raise ValidationError({"details": "Vui lòng chọn ít nhất một phòng."})
+
+        room_id = details_data[0].get('room')
+        room = Room.objects.get(pk=room_id)
+
+
+        overlapping = Booking.objects.filter(
+            details__room_id=room_id,
+            check_in_date__lt=check_out,
+            check_out_date__gt=check_in
+        ).exclude(status__in=['CANCELLED', 'CHECKED_OUT'])
+
+
+        if overlapping.exists():
+            raise ValidationError({"error": f"Phòng {room.room_number} đã bị đặt trong khoảng thời gian này!"})
+
+
+        days = (check_out - check_in).days
+        if days <= 0:
+            raise ValidationError({"error": "Ngày trả phòng phải sau ngày nhận phòng."})
+
+        total_room_price = room.room_type.base_price * days
+        total_service_price = 0
+        for s in services_data:
+            if isinstance(s, dict):
+                s_id = s.get('service_id')
+                qty = s.get('quantity', 1)
+            else:
+                s_id = s
+                qty = 1
+
+            service = Service.objects.get(pk=s_id)
+            total_service_price += (service.price * qty)
+
+
+        with transaction.atomic():
+            booking = serializer.save(
+                customer=self.request.user,
+                status='PENDING',
+                total_amount=total_room_price + total_service_price,
+                check_in_date=check_in,
+                check_out_date=check_out
+            )
+
+
+            if not BookingDetail.objects.filter(booking=booking, room=room).exists():
+                BookingDetail.objects.create(
+                    booking=booking,
+                    room=room,
+                    price_at_booking=room.room_type.base_price
+                )
+
+
+            for s in services_data:
+                if isinstance(s, dict):
+                    s_id = s.get('service_id')
+                    qty = s.get('quantity', 1)
+                else:
+                    s_id = s
+                    qty = 1
+
+                service = Service.objects.get(pk=s_id)
+                BookingService.objects.create(
+                    booking=booking,
+                    service=service,
+                    quantity=qty,
+                    total_price=service.price * qty
+                )
+
+    @action(methods=['post'], detail=True, url_path='confirm-cod')
+    def confirm_cod(self, request, pk=None):
+        booking = self.get_object()
+
+        if booking.status != 'PENDING':
+            return Response({"error": "Đơn hàng không hợp lệ hoặc đã được xác nhận trước đó."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        booking.status = 'CONFIRMED'
+        booking.save()
+
+        Payment.objects.update_or_create(
+            booking=booking,
+            defaults={
+                'amount': booking.total_amount,
+                'payment_method': 'CASH',  
+                'payment_status': 'PENDING'
+            }
+        )
+
+        return Response({"message": "Đặt phòng thành công, vui lòng thanh toán tại quầy khi nhận phòng!"},
+                        status=status.HTTP_200_OK)
+
     def get_queryset(self):
         user = self.request.user
-        # LOGIC PHÂN QUYỀN: Nếu là Nhân viên/Quản lý thì được xem TẤT CẢ các đơn đặt phòng để làm thủ tục
         if user.role in ['RECEPTIONIST', 'ACCOUNTANT', 'MANAGER']:
             return Booking.objects.all()
-        # LOGIC QUAN TRỌNG: Khách hàng nào chỉ thấy booking của người đó
         return Booking.objects.filter(customer=user)
 
-    # Thêm action tùy chỉnh để khách hàng hủy phòng
     @action(methods=['post'], detail=True, url_path='cancel')
     def cancel_booking(self, request, pk=None):
         booking = self.get_object()
@@ -362,165 +440,5 @@ class BookingViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_200_OK)
 
 
-    #     roomtype_id = self.request.query_params.get('roomtype_id')
-    #     if roomtype_id:
-    #         query = query.filter(roomtype_id=roomtype_id)
-    #     return query
-    #
-    # # Cách 2 để lọc
-    # filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    # search_fields = ['room_number']
-    # ordering_fields = ['roomtype_id']
 
 
-
-class ManagerReportViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_permissions(self):
-        # return [permissions.AllowAny()]
-        return super().get_permissions()
-
-    def check_manager_permission(self, request):
-        if request.user.is_anonymous or request.user.role != 'MANAGER':
-            return False
-        return True
-
-    @action(methods=['get'], detail=False, url_path='revenue')
-    def get_revenue_report(self, request):
-        if not self.check_manager_permission(request):
-            return Response({"error": "Bạn không có quyền MANAGER để xem báo cáo doanh thu!"},
-                            status=status.HTTP_403_FORBIDDEN)
-
-        current_year = datetime.now().year
-        year = request.query_params.get('year', current_year)
-        try:
-            year = int(year)
-        except ValueError:
-            year = current_year
-
-        room_payments = Payment.objects.filter(
-            payment_status='SUCCESS',
-            created_date__year=year
-        ).annotate(
-            month=ExtractMonth('created_date')
-        ).values('month').annotate(
-            total=Sum('amount')
-        ).order_by('month')
-
-        service_payments = BookingService.objects.filter(
-            booking__status__in=['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'],
-            created_date__year=year
-        ).annotate(
-            month=ExtractMonth('created_date')
-        ).values('month').annotate(
-            total=Sum('total_price')
-        ).order_by('month')
-
-        monthly_data = {m: {"room_revenue": 0, "service_revenue": 0, "total_revenue": 0} for m in range(1, 13)}
-
-        for p in room_payments:
-            m = p['month']
-            monthly_data[m]["room_revenue"] = float(p['total'] or 0)
-            monthly_data[m]["total_revenue"] += float(p['total'] or 0)
-
-        for s in service_payments:
-            m = s['month']
-            monthly_data[m]["service_revenue"] = float(s['total'] or 0)
-            monthly_data[m]["total_revenue"] += float(s['total'] or 0)
-
-        quarter_data = {1: 0, 2: 0, 3: 0, 4: 0}
-        total_year_revenue = 0
-
-        for month, revenue in monthly_data.items():
-            total_month = revenue["total_revenue"]
-            total_year_revenue += total_month
-
-            if month in [1, 2, 3]:
-                quarter_data[1] += total_month
-            elif month in [4, 5, 6]:
-                quarter_data[2] += total_month
-            elif month in [7, 8, 9]:
-                quarter_data[3] += total_month
-            elif month in [10, 11, 12]:
-                quarter_data[4] += total_month
-
-        report_by_month = [{"month": m, **data} for m, data in monthly_data.items()]
-
-        return Response({
-            "year": year,
-            "total_year_revenue": round(total_year_revenue, 2),
-            "revenue_by_quarters": {f"Quý {q}": round(val, 2) for q, val in quarter_data.items()},
-            "revenue_by_months": report_by_month
-        }, status=status.HTTP_200_OK)
-
-    @action(methods=['get'], detail=False, url_path='occupancy-rate')
-    def get_occupancy_rate(self, request):
-        if not self.check_manager_permission(request):
-            return Response({"error": "Bạn không có quyền quản lý để xem mật độ phòng!"},
-                            status=status.HTTP_403_FORBIDDEN)
-
-        total_rooms_count = Room.objects.filter(active=True).count()
-        if total_rooms_count == 0:
-            return Response({"message": "Khách sạn chưa cấu hình phòng nào.", "occupancy_rate": 0},
-                            status=status.HTTP_200_OK)
-
-        occupied_rooms_count = Room.objects.filter(active=True, status='OCCUPIED').count()
-
-        current_occupancy_rate = (occupied_rooms_count / total_rooms_count) * 100
-
-
-        room_status_distribution = Room.objects.filter(active=True).values('status').annotate(
-            quantity=Count('id')
-        )
-
-        popular_room_types = BookingDetail.objects.filter(
-            booking__status__in=['CONFIRMED', 'CHECKED_IN']
-        ).values('room__room_type__name').annotate(
-            booking_count=Count('id')
-        ).order_by('-booking_count')
-
-        return Response({
-            "total_rooms": total_rooms_count,
-            "occupied_rooms": occupied_rooms_count,
-            "current_occupancy_rate_percentage": round(current_occupancy_rate, 2),
-            "room_status_distribution": list(room_status_distribution),
-            "popular_room_types": list(popular_room_types)
-        }, status=status.HTTP_200_OK)
-
-    @action(methods=['get'], detail=False, url_path='customer-feedback')
-    def get_customer_feedback(self, request):
-        if not self.check_manager_permission(request):
-            return Response({"error": "Bạn không có quyền quản lý để xem đánh giá tổng hợp!"},
-                            status=status.HTTP_403_FORBIDDEN)
-
-        reviews_queryset = Review.objects.all()
-        total_reviews = reviews_queryset.count()
-
-        if total_reviews == 0:
-            return Response({"message": "Chưa có phản hồi hay đánh giá nào từ khách hàng."},
-                            status=status.HTTP_200_OK)
-
-        average_stars = reviews_queryset.aggregate(avg_rating=Avg('rating'))['avg_rating']
-
-        rating_distribution = reviews_queryset.values('rating').annotate(
-            count=Count('id')
-        ).order_by('-rating')
-
-        bad_reviews = reviews_queryset.filter(rating__lte=2).order_by('-created_date')[:5]
-
-        bad_reviews_details = [{
-            "review_id": r.id,
-            "booking_id": r.booking.id,
-            "customer": r.booking.customer.username,
-            "rating": r.rating,
-            "comment": r.comment,
-            "date": r.created_date.strftime("%d/%m/%Y")
-        } for r in bad_reviews]
-
-        return Response({
-            "total_reviews_received": total_reviews,
-            "hotel_average_rating": round(average_stars, 2),
-            "rating_distribution": list(rating_distribution),
-            "urgent_negative_reviews": bad_reviews_details
-        }, status=status.HTTP_200_OK)

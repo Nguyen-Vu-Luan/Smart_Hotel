@@ -14,23 +14,23 @@ from pathlib import Path
 
 import ckeditor
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-&my+96c*=vp5k0vaxbp0pxpfz_e5&6)5(cfn&l74v-%q&b(_5p'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '192.168.120.239'
+]
 
 
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -42,8 +42,6 @@ INSTALLED_APPS = [
     'rooms.apps.RoomsConfig',
     'rest_framework',
     'django_filters',
-    # 'ckeditor',
-    # 'ckeditor_uploader',
     'drf_yasg',
     'cloudinary',
     'oauth2_provider',
@@ -64,7 +62,7 @@ ROOT_URLCONF = 'smart_hotel.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,22 +77,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'smart_hotel.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'smarthotel',
         'USER': 'root',
-        'PASSWORD': 'Ln@080404',
-        'HOST': ''  # mặc định localhost
+        'PASSWORD': 'abc123',
+        'HOST': ''
     }
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -112,8 +106,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
@@ -124,8 +116,6 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 
@@ -147,10 +137,6 @@ REST_FRAMEWORK = {
     )
 }
 
-# Luân
-# CLIENT_ID = Z2VFBztgCuHXJmaTvDae0P5Vio0hfpMTMKkugtSA
-# CLIENT_SECRET = bHaIH5deWIjYTnGJbOIuVnlOqy50PjjVHQhvLNF8i8M0Y68Mq4kBTgakv4FMQVME2uVBE6WPr2y0VhjFQ5JRzTlbJi5O57fs3i134pWxKYAW7a3RUWWNMUXOQ8W3Rvf3
-
 
 CLIENT_ID = 'q0QxIoaHENINPcS4iPs7k4fts0c8v0vN0axY5Qmt'
 CLIENT_SECRET = 'Tg4MXjuYDjBSiFFNnnGBK9fIhVehKGzIA4Dy6H7BLuppoPMtcJkAp2BS78PH0tFbLvdYiwZcI8ax9hd729lY86j40injERxi0b3j22rO3SglPzMEEbIpF44mlWSWJdVs'
@@ -160,7 +146,7 @@ VNPAY_TMN_CODE = "WCTEJ7O4"
 VNPAY_HASH_SECRET = "35NQH0FH8QA5OJNVI8WGAJ8P60RXSEDA"
 VNPAY_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
 
-VNPAY_RETURN_URL = "http://127.0.0.1:8000/payments/vnpay-callback/"
+VNPAY_RETURN_URL = "http://192.168.120.239:8000/payments/vnpay-callback/"
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

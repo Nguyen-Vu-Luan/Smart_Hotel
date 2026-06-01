@@ -6,15 +6,14 @@ from django.utils.safestring import mark_safe
 from django.urls import path
 
 from .models import User, RoomType, Room, Booking, BookingDetail, Service, BookingService, Payment, Review
+from .utils import get_stats_data
 
-
-# 1. Cấu hình hiển thị cho User
 class MyUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'phone_number', 'role', 'is_staff', 'is_active')
     list_filter = ('role', 'is_staff', 'is_active')
     readonly_fields = ['image_view']
 
-    # Thêm các trường custom vào màn hình chỉnh sửa chi tiết
+
     fieldsets = UserAdmin.fieldsets + (
         ('Thông tin bổ sung', {'fields': ('phone_number', 'role', 'avatar', 'image_view')}),
     )
@@ -25,7 +24,7 @@ class MyUserAdmin(UserAdmin):
         return None
 
 
-# 2. Cấu hình hiển thị cho RoomType (giữ nguyên logic của bạn, thêm list_display)
+
 class MyRoomTypeAdmin(admin.ModelAdmin):
     list_display = ('name', 'base_price', 'capacity', 'active')
     search_fields = ('name',)
@@ -38,7 +37,7 @@ class MyRoomTypeAdmin(admin.ModelAdmin):
         return None
 
 
-# 3. Cấu hình hiển thị cho Room (giữ nguyên logic của bạn, thêm list_display)
+
 class MyRoomAdmin(admin.ModelAdmin):
     list_display = ('room_number', 'room_type', 'status', 'active')
     list_filter = ('status', 'room_type', 'active')
@@ -51,7 +50,6 @@ class MyRoomAdmin(admin.ModelAdmin):
         return None
 
 
-# 4. Cấu hình hiển thị cho Service (Dịch vụ) - Áp dụng image_view
 class MyServiceAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'active')
     search_fields = ('name',)
@@ -62,20 +60,19 @@ class MyServiceAdmin(admin.ModelAdmin):
             return mark_safe(f'<img src="{service.image.url}" width="200" style="border-radius: 8px;"/>')
         return None
 
-# 5. Cấu hình hiển thị cho Booking (Đặt phòng)
 class MyBookingAdmin(admin.ModelAdmin):
     list_display = ('id', 'customer', 'check_in_date', 'check_out_date', 'status', 'total_amount')
     list_filter = ('status', 'check_in_date')
     search_fields = ('customer__username', 'customer__email')
 
 
-# 6. Cấu hình hiển thị cho Payment (Thanh toán)
+
 class MyPaymentAdmin(admin.ModelAdmin):
     list_display = ('id', 'booking', 'amount', 'payment_method', 'payment_status', 'created_date')
     list_filter = ('payment_status', 'payment_method')
 
 
-# Cấu hình Custom Admin Site
+
 class MyAdminSite(admin.AdminSite):
     site_header = "Smart Hotel Admin"
     site_title = "Smart Hotel Portal"
@@ -83,14 +80,20 @@ class MyAdminSite(admin.AdminSite):
 
     def get_urls(self):
         return [
-            path('room-stats/', self.room_stats),
+            path('stats/', self.stats_view, name='stats_view')
         ] + super().get_urls()
 
-    def room_stats(self, request):
-        stats = RoomType.objects.annotate(count=Count('room')).values('id', 'name', 'count')
-        return TemplateResponse(request, "admin/stats.html", {"stats": stats})
 
-# Khởi tạo
+    def stats_view(self, request):
+        year = int(request.GET.get('year', 2026))
+        period = request.GET.get('period', 'month')
+        data = get_stats_data(period, year)
+        return TemplateResponse(request, 'admin/stats.html', {
+            'data': data, 'year': year, 'period': period
+        })
+
+
+
 admin_site = MyAdminSite()
 
 admin_site.register(User, MyUserAdmin)
@@ -100,7 +103,6 @@ admin_site.register(Service, MyServiceAdmin)
 admin_site.register(Booking, MyBookingAdmin)
 admin_site.register(Payment, MyPaymentAdmin)
 
-# Các bảng chi tiết không cần custom giao diện nhiều có thể đăng ký trực tiếp
 admin_site.register(BookingDetail)
 admin_site.register(BookingService)
 admin_site.register(Review)
