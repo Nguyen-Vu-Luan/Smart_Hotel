@@ -1,8 +1,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from cloudinary.models import CloudinaryField
+from django.utils import timezone
+from datetime import timedelta
 
-# 1. Bảng User (Người dùng)
+
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('CUSTOMER', 'Khách hàng'),
@@ -18,7 +20,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
-# Base dùng cho các thuộc tính chung
+
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -27,7 +29,7 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-# 2. Bảng RoomType (Loại phòng)
+
 class RoomType(BaseModel):
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -38,7 +40,7 @@ class RoomType(BaseModel):
     def __str__(self):
         return self.name
 
-# 3. Bảng Room (Phòng)
+
 class Room(BaseModel):
     STATUS_CHOICES = [
         ('AVAILABLE', 'Trống'),
@@ -55,7 +57,7 @@ class Room(BaseModel):
     def __str__(self):
         return self.room_number
 
-# 4. Bảng Booking (Đặt phòng)
+
 class Booking(BaseModel):
     STATUS_CHOICES = [
         ('PENDING', 'Chờ xác nhận'),
@@ -65,6 +67,7 @@ class Booking(BaseModel):
         ('CANCELLED', 'Đã hủy'),
     ]
 
+    expired_at = models.DateTimeField(null=True, blank=True)
     customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     check_in_date = models.DateField()
     check_out_date = models.DateField()
@@ -75,17 +78,21 @@ class Booking(BaseModel):
     def __str__(self):
         return f"Booking #{self.id} - {self.customer.username}"
 
-# 5. Bảng BookingDetail (Chi tiết đặt phòng)
+    def save(self, *args, **kwargs):
+        if not self.expired_at and self.status == 'PENDING':
+            self.expired_at = timezone.now() + timedelta(minutes=2)
+        super().save(*args, **kwargs)
+
+
 class BookingDetail(BaseModel):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='details')
-    # Sử dụng PROTECT để không cho phép xóa phòng nếu đã có người đặt
     room = models.ForeignKey('Room', on_delete=models.PROTECT, related_name='booking_details')
     price_at_booking = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return f"Detail #{self.id} for Booking #{self.booking.id}"
 
-# 6. Bảng Service (Dịch vụ đi kèm)
+
 class Service(BaseModel):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
@@ -95,10 +102,9 @@ class Service(BaseModel):
     def __str__(self):
         return self.name
 
-# 7. Bảng BookingService (Dịch vụ khách đã đặt)
+
 class BookingService(BaseModel):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='services')
-    # Sử dụng PROTECT để lịch sử hóa đơn không bị lỗi nếu lỡ xóa Service
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField(default=1)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -106,7 +112,7 @@ class BookingService(BaseModel):
     def __str__(self):
         return f"{self.quantity}x {self.service.name} (Booking #{self.booking.id})"
 
-# 8. Bảng Payment (Thanh toán)
+
 class Payment(BaseModel):
     METHOD_CHOICES = [
         ('CARD', 'Thẻ ngân hàng'),
@@ -127,7 +133,7 @@ class Payment(BaseModel):
     def __str__(self):
         return f"Payment #{self.id} - {self.payment_status}"
 
-# 9. Bảng Review (Đánh giá)
+
 class Review(BaseModel):
     booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='review')
     rating = models.PositiveSmallIntegerField()
@@ -135,3 +141,4 @@ class Review(BaseModel):
 
     def __str__(self):
         return f"Review for Booking #{self.booking.id}"
+

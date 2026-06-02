@@ -1,29 +1,44 @@
-{% extends "admin/base_site.html" %}
-
+{% extends 'admin/base_site.html' %}
 {% block content %}
-<h1>Room Stats</h1>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<table border="1">
-    <tr>
-        <th>Name</th>
-        <th>Count</th>
-    </tr>
+<div style="padding: 20px;">
+    <h1>Báo cáo Chiến lược Kinh doanh - Năm {{ year }}</h1>
+    
+    <form method="GET" style="margin-bottom: 20px; background: #eee; padding: 15px;">
+        <strong>Lọc theo: </strong>
+        <select name="period">
+            <option value="month" {% if period == 'month' %}selected{% endif %}>Tháng</option>
+            <option value="quarter" {% if period == 'quarter' %}selected{% endif %}>Quý</option>
+        </select>
+        <input type="number" name="year" value="{{ year }}">
+        <button type="submit">Xem báo cáo</button>
+    </form>
 
-    {% for r in stats %}
-    <tr>
-        <td>{{ r.name }}</td>
-        <td>{{ r.count }}</td>
-    </tr>
-    {% endfor %}
-</table>
+    <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; flex: 1;">
+            <h3>Tỷ lệ lấp phòng</h3>
+            <p style="font-size: 24px; font-weight: bold;">{{ data.occupancy_rate }}%</p>
+        </div>
+        <div style="background: #fff3e0; padding: 20px; border-radius: 10px; flex: 1;">
+            <h3>Đánh giá dịch vụ</h3>
+            <p style="font-size: 24px; font-weight: bold;">{{ data.avg_rating }} ⭐</p>
+        </div>
+    </div>
 
-<div>
-  <canvas id="myChart"></canvas>
+    <div style="width: 800px; background: #fff; padding: 20px;">
+        <canvas id="revenueChart"></canvas>
+    </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ data.labels|safe }},
+            datasets: [{ label: 'Doanh thu (VNĐ)', data: {{ data.values|safe }}, backgroundColor: '#417690' }]
+        }
+    });
 </script>
-
 {% endblock %}
